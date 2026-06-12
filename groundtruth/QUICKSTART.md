@@ -1,0 +1,49 @@
+# groundtruth — Quickstart
+
+## 0. Check it's installed (once per machine)
+
+```
+claude plugin list
+```
+
+Look for `groundtruth@groundtruth-dev — Status: ✓ enabled`. If missing:
+
+```
+claude plugin marketplace add <marketplace repo URL or local path>
+claude plugin install groundtruth@groundtruth-dev
+```
+
+Quick in-session check: type `/groundtruth` in any Claude Code chat — the six commands should autocomplete.
+
+## 1. Start tracking a project
+
+1. `git init` your project folder (recommended — evidence pins against commits).
+2. Open Claude Code **in that folder** (tracking is per-repo).
+3. Run `/groundtruth:init` and do the interview properly:
+   - Confirm/correct the proposed phases and tasks; weight phases by importance.
+   - **Reject weak verify specs** — a single-case test can be passed by a stub. Insist on the real test runner, multiple cases.
+   - **Accept `"audit": "required"`** for core/feature tasks (✓✓ tier: an independent reviewer must confirm the implementation is genuine). Skip for mechanical tasks.
+4. Commit `.groundtruth/map.json`. Gitignore `.groundtruth/.shadow.json` and `.groundtruth/.session-state.json` (init reminds you).
+
+## 2. Day-to-day
+
+| Moment | What to do |
+|---|---|
+| Session start | Nothing — the verified project summary is auto-injected |
+| Working | Nothing — operations are counted silently |
+| ⚠ "unrecorded work" warning appears | `/groundtruth:checkpoint` |
+| Finished a piece of work / ending the day | `/groundtruth:checkpoint` |
+| Want to see where things stand | `/groundtruth:status` |
+
+Checkpoint runs the verify commands, spawns the independent auditor where required, records signed evidence, and shows the updated map with trust tiers:
+`✓✓ verified + audited · ✓ verified · ⏳ awaiting audit · ⚠ manual waiver (taken on trust)`
+
+## 3. Occasional
+
+- `/groundtruth:sync` — weekly, after pulls, **and always after cloning a tracked repo onto a new machine** (evidence is machine-local and re-earned by re-running the verifications). Demotes anything that no longer passes; finds unmapped work in git history.
+- `/groundtruth:task` — scope changes: add tasks (verify spec mandatory), block/unblock, record decisions.
+- `/groundtruth:portfolio` — all tracked projects on this machine, from anywhere.
+
+## The one rule
+
+**Nobody marks anything done — not you, not Claude.** "Mark X as done" triggers verification; if the tests fail, it stays in progress and you see the failure verbatim. The map can only say what the code can prove.

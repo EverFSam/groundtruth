@@ -1,0 +1,11 @@
+{
+  "name": "groundtruth-dev",
+  "owner": { "name": "Sam Spenceley-Buckham" },
+  "plugins": [
+    {
+      "name": "groundtruth",
+      "source": "./groundtruth",
+      "description": "Evidence-based project tracking that survives context loss. No task is 'done' until its verification passes."
+    }
+  ]
+}
