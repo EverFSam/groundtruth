@@ -12,8 +12,9 @@ Full design rationale: see `groundtruth-plugin.md` in `~/.claude`.
 | `/groundtruth:status` | Verified progress report (bars, ✓/⚠, blockers, health) |
 | `/groundtruth:checkpoint` | Run verify commands → signed evidence → checkpoint entry |
 | `/groundtruth:sync` | Re-verify all done tasks (demotes regressions), find unmapped work |
-| `/groundtruth:task` | Add/edit tasks (verify spec mandatory; `done` forbidden here) |
-| `/groundtruth:portfolio` | All tracked projects on this machine at a glance |
+| `/groundtruth:task` | Add/edit tasks (verify spec mandatory; `done` forbidden here; optional `owner`) |
+| `/groundtruth:report` | Shareable HTML dashboard (+ optional CSV for Excel) across all projects, with owners & trust tiers |
+| `/groundtruth:portfolio` | All tracked projects on this machine at a glance (terminal) |
 
 ## How "done" is enforced
 1. Every task declares a `verify` command at creation.

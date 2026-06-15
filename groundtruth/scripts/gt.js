@@ -11,6 +11,7 @@
 //                                        record the independent reviewer's verdict (signed)
 //   waive <taskId> --note "<reason>"     complete a method:"manual" task (flagged unverified)
 //   checkpoint --summary "<text>" [--log "<in-flight note>"]
+//   report [--csv] [--out <path>]        HTML dashboard (+ optional CSV) of all projects
 //   portfolio                            all registered projects at a glance
 const fs = require('fs');
 const path = require('path');
@@ -83,6 +84,139 @@ function changedFiles(map) {
   const dirty = tryGit('git status --porcelain -uall') || [];
   files.push(...dirty.map(l => l.slice(3).trim().replace(/^"|"$/g, '')).filter(Boolean));
   return [...new Set(files)].filter(f => !f.startsWith('.groundtruth')).slice(0, 50);
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Load every registered project's map. Returns {name, path, map, missing}.
+function loadAllProjects() {
+  const reg = L.loadJson(L.registryPath()) || { projects: [] };
+  return reg.projects.map(p => {
+    const m = L.loadJson(path.join(p.path, '.groundtruth', 'map.json'));
+    return { name: p.name, path: p.path, map: m, missing: !m };
+  });
+}
+
+function reportRows(projects) {
+  const rows = [];
+  for (const proj of projects) {
+    if (proj.missing) continue;
+    for (const ph of (proj.map.phases || [])) {
+      for (const t of (ph.tasks || [])) {
+        const tier = L.trustTier(t);
+        rows.push({
+          project: proj.name, phase: ph.name, id: t.id, desc: t.desc,
+          owner: t.owner || '', status: t.status, tier: tier.label, tierKey: tier.key,
+          verified_at: (t.evidence && t.evidence.verified_at) ? t.evidence.verified_at.slice(0, 10) : '',
+        });
+      }
+    }
+  }
+  return rows;
+}
+
+function toCsv(rows) {
+  const cols = ['project', 'phase', 'id', 'desc', 'owner', 'status', 'tier', 'verified_at'];
+  const cell = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  return [cols.join(','), ...rows.map(r => cols.map(c => cell(r[c])).join(','))].join('\r\n') + '\r\n';
+}
+
+function buildHtml(projects, generatedAt) {
+  const rows = reportRows(projects);
+  const live = projects.filter(p => !p.missing);
+  // Owner rollup.
+  const byOwner = {};
+  for (const r of rows) {
+    const o = r.owner || '(unassigned)';
+    byOwner[o] = byOwner[o] || { total: 0, done: 0 };
+    byOwner[o].total++;
+    if (r.status === 'done') byOwner[o].done++;
+  }
+  const tierColor = {
+    audited: '#16a34a', verified: '#65a30d', manual: '#d97706', awaiting: '#0891b2',
+    in_progress: '#2563eb', blocked: '#dc2626', todo: '#9ca3af',
+  };
+  const projectCard = proj => {
+    const m = proj.map;
+    const phaseRows = (m.phases || []).map(ph => {
+      const pct = Math.round(L.phaseProgress(ph) * 100);
+      const owners = [...new Set((ph.tasks || []).map(t => t.owner).filter(Boolean))];
+      return `<tr><td>${esc(ph.name)}</td><td class="num">w${ph.weight || 1}</td>
+        <td class="barcell"><div class="bar"><div class="fill" style="width:${pct}%"></div></div><span class="pct">${pct}%</span></td>
+        <td>${esc(owners.join(', ') || '—')}</td></tr>`;
+    }).join('');
+    const taskRows = L.allTasks(m).map(t => {
+      const tier = L.trustTier(t);
+      return `<tr><td class="mono">${esc(t.id)}</td><td>${esc(t.desc)}</td>
+        <td>${esc(t.owner || '—')}</td>
+        <td><span class="tier" style="background:${tierColor[tier.key] || '#9ca3af'}">${esc(tier.label)}</span></td>
+        <td class="mono small">${esc(t.evidence && t.evidence.verified_at ? t.evidence.verified_at.slice(0, 10) : '')}</td></tr>`;
+    }).join('');
+    const cps = m.checkpoints || [];
+    const last = cps.length ? cps[cps.length - 1] : null;
+    const blockers = (m.blockers || []).map(b => `<li>${esc(b)}</li>`).join('') || '<li class="muted">none</li>';
+    return `<section class="project">
+      <h2>${esc(m.project)} <span class="big">${L.overallProgress(m)}%</span></h2>
+      <p class="meta">${esc(proj.path)} · last checkpoint: ${last ? esc(last.date.slice(0, 10)) : 'never'}${last && last.commit ? ' @ ' + esc(last.commit) : ''}</p>
+      <table class="phases"><thead><tr><th>Phase</th><th>Weight</th><th>Progress</th><th>Owners</th></tr></thead><tbody>${phaseRows || '<tr><td colspan=4 class="muted">no phases</td></tr>'}</tbody></table>
+      <details><summary>Tasks (${L.allTasks(m).length})</summary>
+        <table class="tasks"><thead><tr><th>ID</th><th>Task</th><th>Owner</th><th>Status / trust tier</th><th>Verified</th></tr></thead><tbody>${taskRows}</tbody></table>
+      </details>
+      <p class="blockers"><strong>Blockers:</strong></p><ul>${blockers}</ul>
+    </section>`;
+  };
+  const portfolioRows = live.map(p => {
+    const m = p.map;
+    const cps = m.checkpoints || [];
+    const last = cps.length ? cps[cps.length - 1].date : null;
+    const d = last ? L.daysSince(last) : null;
+    const stale = d === null ? '<span class="warn">never</span>' : d > 5 ? `<span class="warn">${d}d ago</span>` : `${d}d ago`;
+    const pct = L.overallProgress(m);
+    return `<tr><td>${esc(m.project)}</td>
+      <td class="barcell"><div class="bar"><div class="fill" style="width:${pct}%"></div></div><span class="pct">${pct}%</span></td>
+      <td class="num">${(m.blockers || []).length}</td><td>${stale}</td></tr>`;
+  }).join('');
+  const ownerRows = Object.entries(byOwner).sort((a, b) => b[1].total - a[1].total).map(([o, s]) =>
+    `<tr><td>${esc(o)}</td><td class="num">${s.total}</td><td class="num">${s.done}</td><td class="num">${s.total - s.done}</td></tr>`).join('');
+
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>groundtruth — project report</title>
+<style>
+  :root{--fg:#1f2937;--muted:#6b7280;--line:#e5e7eb;--bg:#f9fafb;--card:#fff;}
+  *{box-sizing:border-box}
+  body{font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--fg);background:var(--bg);margin:0;padding:32px;max-width:1100px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px} h2{font-size:18px;margin:0 0 2px}
+  .sub{color:var(--muted);margin:0 0 24px}
+  .big{color:#2563eb;font-weight:700} .muted{color:var(--muted)} .warn{color:#dc2626;font-weight:600}
+  table{border-collapse:collapse;width:100%;margin:8px 0 16px;background:var(--card)}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums} td.mono{font-family:ui-monospace,Consolas,monospace} td.small{font-size:12px;color:var(--muted)}
+  .bar{display:inline-block;width:140px;height:10px;background:var(--line);border-radius:5px;overflow:hidden;vertical-align:middle}
+  .fill{height:100%;background:linear-gradient(90deg,#3b82f6,#2563eb)}
+  .barcell{white-space:nowrap} .pct{margin-left:8px;font-variant-numeric:tabular-nums;color:var(--muted)}
+  .tier{display:inline-block;color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;white-space:nowrap}
+  section.project{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin:16px 0}
+  section.project .meta{color:var(--muted);font-size:12px;margin:0 0 12px}
+  details summary{cursor:pointer;color:#2563eb;margin:4px 0 8px} ul{margin:4px 0 0;padding-left:20px}
+  .note{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;font-size:13px;color:#92400e;margin:8px 0 20px}
+  footer{color:var(--muted);font-size:12px;margin-top:32px;border-top:1px solid var(--line);padding-top:12px}
+</style></head><body>
+<h1>groundtruth — project report</h1>
+<p class="sub">Generated ${esc(generatedAt)} · ${live.length} project(s) tracked</p>
+<div class="note"><strong>Progress &amp; trust tiers are evidence-based</strong> (a task is only "done" when its verification — and independent audit, where required — passed). <strong>Owners are assignments, not verified facts</strong> — they show who is responsible, not that work is done.</div>
+<h2>Portfolio</h2>
+<table><thead><tr><th>Project</th><th>Progress</th><th>Blockers</th><th>Last checkpoint</th></tr></thead><tbody>${portfolioRows || '<tr><td colspan=4 class="muted">no projects</td></tr>'}</tbody></table>
+<h2>By owner</h2>
+<table><thead><tr><th>Owner</th><th>Tasks</th><th>Done</th><th>Outstanding</th></tr></thead><tbody>${ownerRows || '<tr><td colspan=4 class="muted">no owners assigned</td></tr>'}</tbody></table>
+<h2>Projects</h2>
+${live.map(projectCard).join('') || '<p class="muted">No tracked projects. Run /groundtruth:init in a repo.</p>'}
+<footer>groundtruth · trust tiers: ✓✓ verified + independently audited · ✓ verified (command passed) · ⏳ awaiting audit · ⚠ manual waiver (taken on trust)</footer>
+</body></html>`;
 }
 
 const SMELLS = [
@@ -342,6 +476,25 @@ switch (cmd) {
     }
     break;
   }
+  case 'report': {
+    const projects = loadAllProjects();
+    const live = projects.filter(p => !p.missing);
+    if (!live.length) die('no tracked projects with a readable map — run /groundtruth:init in a repo first.');
+    const stamp = opt('now') || now(); // skills pass --now so the timestamp is real
+    const outHtml = opt('out') || path.join(cwd, 'groundtruth-report.html');
+    fs.writeFileSync(outHtml, buildHtml(projects, stamp));
+    const written = [outHtml];
+    if (flag('csv')) {
+      const outCsv = outHtml.replace(/\.html?$/i, '') + '.csv';
+      fs.writeFileSync(outCsv, toCsv(reportRows(projects)));
+      written.push(outCsv);
+    }
+    const missing = projects.filter(p => p.missing).map(p => p.name);
+    console.log(`[groundtruth] report written (${live.length} project(s)):`);
+    for (const w of written) console.log(`  ${w}`);
+    if (missing.length) console.log(`  note: ${missing.length} registered project(s) had no readable map and were skipped: ${missing.join(', ')}`);
+    break;
+  }
   default:
-    die('unknown command "' + (cmd || '') + '". Commands: init, status, verify, audit, waive, checkpoint, portfolio');
+    die('unknown command "' + (cmd || '') + '". Commands: init, status, verify, audit, waive, checkpoint, sync, report, portfolio');
 }

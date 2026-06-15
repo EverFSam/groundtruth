@@ -11,9 +11,12 @@ Tasks are edited directly in `.groundtruth/map.json` with the Edit tool. A valid
 
 ```json
 { "id": "api-3", "desc": "Webhook signature validation", "status": "todo",
+  "owner": "Alex",
   "audit": "required",
   "verify": { "method": "command", "run": "npm test -- --grep webhook", "expect": "exit_code_0" } }
 ```
+
+The optional `owner` field records who is responsible for a task (free text — a name or handle). It is an assignment, not evidence; it appears in `/groundtruth:report` but never affects progress or trust tiers.
 
 ## Rules
 - **Every new task MUST have a `verify` spec** — propose one from the repo's real test/build tooling and get the user's approval. `{ "method": "manual" }` is the explicit last resort and the user must accept that the task will be permanently flagged ⚠ unverified.

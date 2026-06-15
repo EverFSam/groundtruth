@@ -124,10 +124,24 @@ function statusCounts(phase) {
   return c;
 }
 
+// Human-facing trust tier for a single task. Reflects HOW completion was
+// established — never the model's say-so.
+function trustTier(task) {
+  if (task.status === 'done') {
+    if ((task.verify || {}).method === 'manual') return { key: 'manual', label: '⚠ manual waiver' };
+    if (auditRequired(task) && validAudit(task)) return { key: 'audited', label: '✓✓ verified + audited' };
+    return { key: 'verified', label: '✓ verified' };
+  }
+  if (task.status === 'awaiting_audit') return { key: 'awaiting', label: '⏳ awaiting audit' };
+  if (task.status === 'blocked') return { key: 'blocked', label: '✋ blocked' };
+  if (task.status === 'in_progress') return { key: 'in_progress', label: '▶ in progress' };
+  return { key: 'todo', label: '· todo' };
+}
+
 module.exports = {
   readStdin, gtDir, mapPath, shadowPath, statePath, loadJson, saveJson,
   homeDir, registryPath, getSecret, evidenceSig, validEvidence, allTasks,
-  auditRequired, auditSig, validAudit,
+  auditRequired, auditSig, validAudit, trustTier,
   phaseProgress, overallProgress, bar, settings, daysSince,
   loadState, saveState, pushSessionLog, statusCounts,
 };

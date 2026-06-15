@@ -16,9 +16,10 @@ The gt.js CLI lives at `<plugin root>/scripts/gt.js` — the `scripts/` director
    - **Recommend `"audit": "required"`** for feature/core-logic tasks: completion then also needs an independent reviewer agent to confirm the implementation is genuine (✓✓ tier). Mechanical tasks (renames, config, docs) don't need it.
 4. **Create the map.** Run `node <gt.js> init --name "<project>"`, then Edit `.groundtruth/map.json` to add the agreed phases and tasks. Schema per task:
    ```json
-   { "id": "api-1", "desc": "Port auth endpoints", "status": "todo",
+   { "id": "api-1", "desc": "Port auth endpoints", "status": "todo", "owner": "Alex",
      "verify": { "method": "command", "run": "npm test -- --grep auth", "expect": "exit_code_0" } }
    ```
+   The optional `owner` field records who is responsible (free text; shown in `/groundtruth:report`, never affects progress). Ask the user whether they want to assign owners.
    Statuses: `todo | in_progress | blocked | done`. Never set `done` here.
 5. **Gitignore the runtime files.** Add `.groundtruth/.shadow.json` and `.groundtruth/.session-state.json` to .gitignore. `map.json` itself SHOULD be committed.
 6. **Commit** the map (if the repo uses git) and show the user `node <gt.js> status`.
