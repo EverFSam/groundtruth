@@ -1,6 +1,6 @@
 {
   "name": "groundtruth",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Evidence-based project tracking that survives context loss. No task is 'done' until its verification passes.",
   "author": { "name": "Sam Spenceley-Buckham" }
 }

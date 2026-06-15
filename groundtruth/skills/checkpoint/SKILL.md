@@ -9,7 +9,8 @@ gt.js lives at `<plugin root>/scripts/gt.js` (two levels above this SKILL.md; or
 
 ## Steps
 
-1. **Identify candidates.** From the session, list tasks that may have been completed since the last checkpoint. If a piece of completed work has no task in the map, add the task first (with a verify spec) via the rules in /groundtruth:task — then verify it.
+0. **Reconcile the whole picture against the map first.** Before verifying anything, review ALL work since the last checkpoint — completed *and* in-progress — and compare it against the existing tasks. For any real work that has no task yet, add it via the /groundtruth:task rules (with a proposed verify spec), setting its status to reflect reality: `in_progress` for work underway, `todo` for things started-then-parked, `blocked` if stuck. The goal is that the map reflects the whole project, not just finished pieces — unfinished scope must be visible too. Use `git status`/`git diff --stat` since the last checkpoint's commit as a prompt for what changed. Don't invent tasks for trivial tangents; do capture genuine new scope. Note new tasks for the user in your summary.
+1. **Identify completion candidates.** From the reconciled task list, pick the tasks that may now be *done* since the last checkpoint, and verify those next.
 2. **Verify — never assert.** For each candidate:
    ```
    node "<gt.js>" verify <taskId> [<taskId> ...]
