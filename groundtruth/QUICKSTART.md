@@ -13,7 +13,7 @@ claude plugin marketplace add <marketplace repo URL or local path>
 claude plugin install groundtruth@groundtruth-dev
 ```
 
-Quick in-session check: type `/groundtruth` in any Claude Code chat — the six commands should autocomplete.
+Quick in-session check: type `/groundtruth` in any Claude Code chat — the seven commands should autocomplete.
 
 ## 1. Start tracking a project
 
@@ -43,6 +43,7 @@ Checkpoint runs the verify commands, spawns the independent auditor where requir
 - `/groundtruth:sync` — weekly, after pulls, **and always after cloning a tracked repo onto a new machine** (evidence is machine-local and re-earned by re-running the verifications). Demotes anything that no longer passes; finds unmapped work in git history.
 - `/groundtruth:task` — scope changes: add tasks (verify spec mandatory), block/unblock, record decisions.
 - `/groundtruth:portfolio` — all tracked projects on this machine, from anywhere.
+- `/groundtruth:report` — shareable HTML dashboard (+ `--csv` for Excel) across all tracked projects, with owners & trust tiers.
 
 ## The one rule
 
