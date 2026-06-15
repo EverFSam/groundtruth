@@ -24,6 +24,12 @@ The optional `owner` field records who is responsible for a task (free text — 
 - **Recommend `"audit": "required"`** for feature/core-logic tasks: completion then needs the verify command to pass AND an independent reviewer agent to confirm the implementation is genuine (tier ✓✓). Skip it for mechanical tasks (renames, config, docs).
 - Allowed status edits: `todo ↔ in_progress ↔ blocked`. Setting `done` (or `awaiting_audit`) here is FORBIDDEN — the validator hook will revert it. Completion happens only via /groundtruth:checkpoint.
 - Never write or modify `evidence` or `audit_result` blocks.
+
+## When the plan changes (the three options)
+- **Goal changed, task lives on** → edit the task's `desc` and `verify.run` in place. The new verify command becomes the new "definition of done". If the task was already `done`, do NOT mutate it (its evidence would no longer match the new goal) — instead create a NEW task with a new id for the new goal and cancel or leave the old one as the honest record of what was built.
+- **Task no longer wanted** → set `"status": "cancelled"` and add `"cancel_reason": "<why, dated>"`. Cancelled (descoped) tasks need NO evidence, are EXCLUDED from progress (so the project can still reach 100%), and show as `⊘ descoped` with their reason in status and reports. Prefer this over deletion — it keeps the audit trail of *why* scope was dropped.
+- **Genuine mistake** → delete the task object entirely (only when it should never have existed).
+- Record the surrounding decision in the `decisions` array regardless, so the *reasoning* for the change survives.
 - When blocking a task, also add a line to the top-level `blockers` array (with date and who/what it's waiting on). Remove it when unblocked.
 - Record significant decisions in the `decisions` array as one-liners with date and rationale.
 - New phases need `id`, `name`, `weight` (relative importance, integer), `tasks`.

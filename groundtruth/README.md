@@ -30,6 +30,10 @@ Full design rationale: see `groundtruth-plugin.md` in `~/.claude`.
 | ✓ | verify command passed |
 | ⏳ | verified, awaiting independent audit — NOT done |
 | ⚠ | manual waiver — taken on trust, permanently flagged |
+| ⊘ | descoped (cancelled) — deliberate non-work, carries a reason, excluded from progress |
+
+## When the plan changes
+Status `cancelled` handles descoped work: set `"status": "cancelled"` + `"cancel_reason": "<why>"` on a task. It needs no evidence, is excluded from the progress denominator (so a project can still reach 100% after dropping scope), and shows as `⊘ descoped` with its reason in status and reports. Use it instead of deletion to keep the audit trail. If a goal merely changes, edit the task's `desc`/`verify` in place; if it was already `done`, make a new task rather than mutate completed work. See the `task` skill.
 
 ## Honest limits
 - Evidence proves *the command passed*, not that the command was a good test — the user approves verify specs at creation, and weak single-case specs are flagged.

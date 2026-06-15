@@ -23,6 +23,7 @@ for (const p of (map.phases || [])) {
   if (c.in_progress) parts.push(`${c.in_progress} in progress`);
   if (c.blocked) parts.push(`${c.blocked} BLOCKED`);
   if (c.todo) parts.push(`${c.todo} todo`);
+  if (c.cancelled) parts.push(`${c.cancelled} descoped`);
   lines.push(`  ${p.name.padEnd(22)} ${L.bar(L.phaseProgress(p))} ${Math.round(100 * L.phaseProgress(p))}%  (${parts.join(', ') || 'no tasks'})`);
 }
 const blockers = map.blockers || [];

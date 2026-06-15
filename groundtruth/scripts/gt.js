@@ -110,6 +110,7 @@ function reportRows(projects) {
         rows.push({
           project: proj.name, phase: ph.name, id: t.id, desc: t.desc,
           owner: t.owner || '', status: t.status, tier: tier.label, tierKey: tier.key,
+          cancel_reason: t.cancel_reason || '',
           verified_at: (t.evidence && t.evidence.verified_at) ? t.evidence.verified_at.slice(0, 10) : '',
         });
       }
@@ -119,7 +120,7 @@ function reportRows(projects) {
 }
 
 function toCsv(rows) {
-  const cols = ['project', 'phase', 'id', 'desc', 'owner', 'status', 'tier', 'verified_at'];
+  const cols = ['project', 'phase', 'id', 'desc', 'owner', 'status', 'tier', 'cancel_reason', 'verified_at'];
   const cell = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
   return [cols.join(','), ...rows.map(r => cols.map(c => cell(r[c])).join(','))].join('\r\n') + '\r\n';
 }
@@ -127,9 +128,10 @@ function toCsv(rows) {
 function buildHtml(projects, generatedAt) {
   const rows = reportRows(projects);
   const live = projects.filter(p => !p.missing);
-  // Owner rollup.
+  // Owner rollup — cancelled (descoped) tasks are not anyone's outstanding work.
   const byOwner = {};
   for (const r of rows) {
+    if (r.status === 'cancelled') continue;
     const o = r.owner || '(unassigned)';
     byOwner[o] = byOwner[o] || { total: 0, done: 0 };
     byOwner[o].total++;
@@ -137,7 +139,7 @@ function buildHtml(projects, generatedAt) {
   }
   const tierColor = {
     audited: '#16a34a', verified: '#65a30d', manual: '#d97706', awaiting: '#0891b2',
-    in_progress: '#2563eb', blocked: '#dc2626', todo: '#9ca3af',
+    in_progress: '#2563eb', blocked: '#dc2626', todo: '#9ca3af', cancelled: '#94a3b8',
   };
   const projectCard = proj => {
     const m = proj.map;
@@ -150,7 +152,9 @@ function buildHtml(projects, generatedAt) {
     }).join('');
     const taskRows = L.allTasks(m).map(t => {
       const tier = L.trustTier(t);
-      return `<tr><td class="mono">${esc(t.id)}</td><td>${esc(t.desc)}</td>
+      const cancelled = t.status === 'cancelled';
+      const reason = cancelled && t.cancel_reason ? ` <span class="muted small">— ${esc(t.cancel_reason)}</span>` : '';
+      return `<tr${cancelled ? ' class="struck"' : ''}><td class="mono">${esc(t.id)}</td><td>${esc(t.desc)}${reason}</td>
         <td>${esc(t.owner || '—')}</td>
         <td><span class="tier" style="background:${tierColor[tier.key] || '#9ca3af'}">${esc(tier.label)}</span></td>
         <td class="mono small">${esc(t.evidence && t.evidence.verified_at ? t.evidence.verified_at.slice(0, 10) : '')}</td></tr>`;
@@ -200,6 +204,7 @@ function buildHtml(projects, generatedAt) {
   .fill{height:100%;background:linear-gradient(90deg,#3b82f6,#2563eb)}
   .barcell{white-space:nowrap} .pct{margin-left:8px;font-variant-numeric:tabular-nums;color:var(--muted)}
   .tier{display:inline-block;color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;white-space:nowrap}
+  tr.struck td:first-child,tr.struck td:nth-child(2){text-decoration:line-through;color:var(--muted)}
   section.project{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin:16px 0}
   section.project .meta{color:var(--muted);font-size:12px;margin:0 0 12px}
   details summary{cursor:pointer;color:#2563eb;margin:4px 0 8px} ul{margin:4px 0 0;padding-left:20px}
@@ -215,7 +220,7 @@ function buildHtml(projects, generatedAt) {
 <table><thead><tr><th>Owner</th><th>Tasks</th><th>Done</th><th>Outstanding</th></tr></thead><tbody>${ownerRows || '<tr><td colspan=4 class="muted">no owners assigned</td></tr>'}</tbody></table>
 <h2>Projects</h2>
 ${live.map(projectCard).join('') || '<p class="muted">No tracked projects. Run /groundtruth:init in a repo.</p>'}
-<footer>groundtruth · trust tiers: ✓✓ verified + independently audited · ✓ verified (command passed) · ⏳ awaiting audit · ⚠ manual waiver (taken on trust)</footer>
+<footer>groundtruth · trust tiers: ✓✓ verified + independently audited · ✓ verified (command passed) · ⏳ awaiting audit · ⚠ manual waiver (taken on trust) · ⊘ descoped (excluded from progress)</footer>
 </body></html>`;
 }
 
@@ -260,22 +265,29 @@ function renderStatus(map) {
   const manual = [];
   const audited = [];
   const awaiting = [];
+  const cancelled = [];
   for (const p of (map.phases || [])) {
     const c = L.statusCounts(p);
     const frac = L.phaseProgress(p);
-    lines.push(`  ${p.name.padEnd(24)} (w${p.weight || 1})  ${L.bar(frac)}  ${String(Math.round(frac * 100)).padStart(3)}%   ${c.done}✓  ${c.awaiting_audit}⏳  ${c.in_progress}▶  ${c.blocked}✋  ${c.todo}·`);
+    const canc = c.cancelled ? `  ${c.cancelled}⊘` : '';
+    lines.push(`  ${p.name.padEnd(24)} (w${p.weight || 1})  ${L.bar(frac)}  ${String(Math.round(frac * 100)).padStart(3)}%   ${c.done}✓  ${c.awaiting_audit}⏳  ${c.in_progress}▶  ${c.blocked}✋  ${c.todo}·${canc}`);
     for (const t of (p.tasks || [])) {
       if (t.status === 'done' && (t.verify || {}).method === 'manual') manual.push(t.id);
       if (t.status === 'done' && L.auditRequired(t) && L.validAudit(t)) audited.push(t.id);
       if (t.status === 'awaiting_audit') awaiting.push(t.id);
+      if (t.status === 'cancelled') cancelled.push({ id: t.id, reason: t.cancel_reason || 'no reason given' });
     }
   }
   lines.push('');
-  lines.push('  Legend: ✓ done (verified)  ⏳ verified, awaiting independent audit  ▶ in progress  ✋ blocked  · todo');
+  lines.push('  Legend: ✓ done (verified)  ⏳ verified, awaiting independent audit  ▶ in progress  ✋ blocked  · todo  ⊘ descoped');
   lines.push('  Trust tiers: ✓✓ verified + independently audited · ✓ verified (command passed) · ⚠ manual waiver, taken on trust');
   if (audited.length) lines.push(`  ✓✓ verified + audited: ${audited.join(', ')}`);
   if (awaiting.length) lines.push(`  ⏳ awaiting audit (NOT yet done): ${awaiting.join(', ')} — run gt.js audit <id>`);
   if (manual.length) lines.push(`  ⚠ unverified (manual waiver, taken on trust): ${manual.join(', ')}`);
+  if (cancelled.length) {
+    lines.push(`  ⊘ descoped (excluded from progress):`);
+    for (const c of cancelled) lines.push(`    - ${c.id}: ${c.reason}`);
+  }
   const blockers = map.blockers || [];
   if (blockers.length) {
     lines.push(`  Blockers (${blockers.length}):`);

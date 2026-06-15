@@ -74,14 +74,22 @@ function allTasks(map) {
   return (map.phases || []).flatMap(p => (p.tasks || []));
 }
 
+// Cancelled (descoped) tasks are deliberate non-work — excluded from progress
+// so a project can reach 100% after dropping scope, instead of being held
+// below by tasks nobody will ever finish.
+function activeTasks(phase) {
+  return (phase.tasks || []).filter(t => t.status !== 'cancelled');
+}
+
 function phaseProgress(phase) {
-  const ts = phase.tasks || [];
+  const ts = activeTasks(phase);
   if (!ts.length) return 0;
   return ts.filter(t => t.status === 'done').length / ts.length;
 }
 
 function overallProgress(map) {
-  const ph = (map.phases || []).filter(p => (p.tasks || []).length);
+  // Phases with no active (non-cancelled) tasks drop out of the weighting entirely.
+  const ph = (map.phases || []).filter(p => activeTasks(p).length);
   const totalW = ph.reduce((s, p) => s + (p.weight || 1), 0);
   if (!totalW) return 0;
   return Math.round(100 * ph.reduce((s, p) => s + (p.weight || 1) * phaseProgress(p), 0) / totalW);
@@ -119,7 +127,7 @@ function pushSessionLog(map, entry, cap = 10) {
 }
 
 function statusCounts(phase) {
-  const c = { done: 0, awaiting_audit: 0, in_progress: 0, blocked: 0, todo: 0 };
+  const c = { done: 0, awaiting_audit: 0, in_progress: 0, blocked: 0, todo: 0, cancelled: 0 };
   for (const t of (phase.tasks || [])) c[t.status] = (c[t.status] || 0) + 1;
   return c;
 }
@@ -132,6 +140,7 @@ function trustTier(task) {
     if (auditRequired(task) && validAudit(task)) return { key: 'audited', label: '✓✓ verified + audited' };
     return { key: 'verified', label: '✓ verified' };
   }
+  if (task.status === 'cancelled') return { key: 'cancelled', label: '⊘ descoped' };
   if (task.status === 'awaiting_audit') return { key: 'awaiting', label: '⏳ awaiting audit' };
   if (task.status === 'blocked') return { key: 'blocked', label: '✋ blocked' };
   if (task.status === 'in_progress') return { key: 'in_progress', label: '▶ in progress' };
@@ -141,7 +150,7 @@ function trustTier(task) {
 module.exports = {
   readStdin, gtDir, mapPath, shadowPath, statePath, loadJson, saveJson,
   homeDir, registryPath, getSecret, evidenceSig, validEvidence, allTasks,
-  auditRequired, auditSig, validAudit, trustTier,
+  auditRequired, auditSig, validAudit, trustTier, activeTasks,
   phaseProgress, overallProgress, bar, settings, daysSince,
   loadState, saveState, pushSessionLog, statusCounts,
 };
