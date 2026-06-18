@@ -35,10 +35,13 @@ Full design rationale: see `groundtruth-plugin.md` in `~/.claude`.
 ## When the plan changes
 Status `cancelled` handles descoped work: set `"status": "cancelled"` + `"cancel_reason": "<why>"` on a task. It needs no evidence, is excluded from the progress denominator (so a project can still reach 100% after dropping scope), and shows as `⊘ descoped` with its reason in status and reports. Use it instead of deletion to keep the audit trail. If a goal merely changes, edit the task's `desc`/`verify` in place; if it was already `done`, make a new task rather than mutate completed work. See the `task` skill.
 
+## Proportionality
+Verify specs are **sized to the work**, not maximised. Behavioural/logic tasks get a scoped test; build tasks get a build/lint check; **visual/cosmetic/copy work (CSS, spacing, wording) uses `method: "manual"`** — a legitimate, proportionate choice, not a stigma. The plugin explicitly forbids *change-detector* verify specs (asserting the exact source text of the file you're changing), which prove no behaviour and couple every tweak to test maintenance. `audit: "required"` is reserved for substantive logic, never cosmetic/config/mechanical work. A one-line CSS change should cost a one-line manual task — not a test suite.
+
 ## Honest limits
-- Evidence proves *the command passed*, not that the command was a good test — the user approves verify specs at creation, and weak single-case specs are flagged.
+- Evidence proves *the command passed*, not that the command was a good test — the user approves verify specs at creation. "Stronger" means testing real behaviour, not tighter string matching; where there's no behaviour to assert, `manual` is the right answer.
 - The audit verdict is **model judgment, not deterministic proof** — a fresh-context adversarial reviewer is far harder to fool than the author grading its own work, but it is a different trust class than an exit code; that's why the tiers are displayed.
-- `method: "manual"` tasks are completed by waiver only and are permanently flagged ⚠ unverified.
+- `method: "manual"` tasks are completed by waiver and labelled ⚠ "taken on trust" — an honest description of work a machine can't judge (e.g. visual changes), not a penalty to avoid.
 - A user (or a determined agent reading the secret file) can forge a signature; the gate is designed to stop *hallucinated* completions, not malicious ones.
 
 ## Per-repo files

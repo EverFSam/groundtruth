@@ -7,9 +7,11 @@ description: Record a verified project checkpoint — run verification commands 
 
 gt.js lives at `<plugin root>/scripts/gt.js` (two levels above this SKILL.md; or `$env:CLAUDE_PLUGIN_ROOT/scripts/gt.js`). Run everything from the repo root.
 
+**Right-size the checkpoint to what changed.** A checkpoint's cost should track the work since the last one. If only a trivial change happened (a cosmetic tweak, a one-liner, a task whose verify is `manual`), this is a light operation: a quick `git status` skim, then waive/record — skip the heavy parts. Reserve the full reconcile-and-verify sweep below for checkpoints that actually completed substantive work. Never run a multi-minute verify suite or spawn an audit agent for a change that has nothing behavioural to prove.
+
 ## Steps
 
-0. **Reconcile the whole picture against the map first.** Before verifying anything, review ALL work since the last checkpoint — completed *and* in-progress — and compare it against the existing tasks. For any real work that has no task yet, add it via the /groundtruth:task rules (with a proposed verify spec), setting its status to reflect reality: `in_progress` for work underway, `todo` for things started-then-parked, `blocked` if stuck. The goal is that the map reflects the whole project, not just finished pieces — unfinished scope must be visible too. Use `git status`/`git diff --stat` since the last checkpoint's commit as a prompt for what changed. Don't invent tasks for trivial tangents; do capture genuine new scope. Note new tasks for the user in your summary.
+0. **Reconcile against the map (scaled to what changed).** Skim `git status`/`git diff --stat` since the last checkpoint's commit. For any *genuine new scope* with no task yet, add it via /groundtruth:task with a right-sized verify spec (cosmetic/visual → `manual`), and set status to reality (`in_progress`/`todo`/`blocked`). The map should reflect work in flight, not just finished pieces. This is a quick skim, not a whole-project audit — don't re-survey unrelated tasks, and don't invent tasks for trivial tangents. Note any new tasks in your summary.
 1. **Identify completion candidates.** From the reconciled task list, pick the tasks that may now be *done* since the last checkpoint, and verify those next.
 2. **Verify — never assert.** For each candidate:
    ```

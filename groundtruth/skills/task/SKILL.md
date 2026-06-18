@@ -19,9 +19,13 @@ Tasks are edited directly in `.groundtruth/map.json` with the Edit tool. A valid
 The optional `owner` field records who is responsible for a task (free text — a name or handle). It is an assignment, not evidence; it appears in `/groundtruth:report` but never affects progress or trust tiers.
 
 ## Rules
-- **Every new task MUST have a `verify` spec** — propose one from the repo's real test/build tooling and get the user's approval. `{ "method": "manual" }` is the explicit last resort and the user must accept that the task will be permanently flagged ⚠ unverified.
-- **Flag weak verify specs.** If a proposed command only asserts a single case (one fixture, file-exists, exit-0 of a trivial script), tell the user a stub or hardcoded value could pass it, and propose a stronger multi-case test.
-- **Recommend `"audit": "required"`** for feature/core-logic tasks: completion then needs the verify command to pass AND an independent reviewer agent to confirm the implementation is genuine (tier ✓✓). Skip it for mechanical tasks (renames, config, docs).
+- **Every new task gets a `verify` spec, sized to the work (proportionality).** Pick the cheapest check that genuinely proves the task — don't over-verify:
+  - Behavioural/logic work → the repo's real test runner, **scoped to run in seconds** (`npm test -- --grep webhook`), not a whole multi-minute suite.
+  - Build/integration work → a build or lint command.
+  - **Visual/cosmetic/copy work (CSS, spacing, wording, layout) or anything with no behaviour to assert → `{ "method": "manual" }`.** This is a legitimate, proportionate choice, not a stigma — the report's "taken on trust" label is simply honest for work a machine can't judge. A one-line CSS change should be a one-line manual task, never a test suite.
+- **NEVER write a change-detector verify spec** — one that asserts the *exact source text* of the file under change (e.g. "the CSS contains `padding: 6px 32px 0`"). It proves no behaviour and forces editing the test on every future tweak. If the only check you can devise is pinning the file's own contents, use `method: "manual"` instead.
+- **"Stronger" = tests real behaviour, not tighter string matching.** If a single-case spec is weak because a stub could pass it, strengthen toward more *behaviour* (inputs/outputs). If there's no behaviour to test, the answer is `manual` — not a more elaborate source-text assertion.
+- **`"audit": "required"` is for substantive logic only** (core/feature/security where a hollow implementation could hide). It adds an independent reviewer agent at checkpoint — never put it on cosmetic, UI, copy, config, or mechanical tasks; it's pure waste where there's nothing to fake.
 - Allowed status edits: `todo ↔ in_progress ↔ blocked`. Setting `done` (or `awaiting_audit`) here is FORBIDDEN — the validator hook will revert it. Completion happens only via /groundtruth:checkpoint.
 - Never write or modify `evidence` or `audit_result` blocks.
 
