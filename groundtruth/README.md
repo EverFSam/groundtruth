@@ -8,7 +8,7 @@ Full design rationale: see `groundtruth-plugin.md` in `~/.claude`.
 ## Commands
 | Command | What it does |
 |---|---|
-| `/groundtruth:init` | Scan repo + interview user → create `.groundtruth/map.json` |
+| `/groundtruth:setup` | Scan repo + interview user → create `.groundtruth/map.json` |
 | `/groundtruth:progress` | Verified progress report (bars, ✓/⚠, blockers, health) |
 | `/groundtruth:checkpoint` | Run verify commands → signed evidence → checkpoint entry |
 | `/groundtruth:sync` | Re-verify all done tasks (demotes regressions), find unmapped work |

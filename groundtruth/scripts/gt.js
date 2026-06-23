@@ -32,7 +32,7 @@ function now() { return new Date().toISOString(); }
 
 function loadMap() {
   const m = L.loadJson(L.mapPath(cwd));
-  if (!m) die('no .groundtruth/map.json in ' + cwd + ' — run /groundtruth:init first.');
+  if (!m) die('no .groundtruth/map.json in ' + cwd + ' — run /groundtruth:setup first.');
   return m;
 }
 // All gt.js writes are trusted: shadow is updated in lockstep so the validator
@@ -219,7 +219,7 @@ function buildHtml(projects, generatedAt) {
 <h2>By owner</h2>
 <table><thead><tr><th>Owner</th><th>Tasks</th><th>Done</th><th>Outstanding</th></tr></thead><tbody>${ownerRows || '<tr><td colspan=4 class="muted">no owners assigned</td></tr>'}</tbody></table>
 <h2>Projects</h2>
-${live.map(projectCard).join('') || '<p class="muted">No tracked projects. Run /groundtruth:init in a repo.</p>'}
+${live.map(projectCard).join('') || '<p class="muted">No tracked projects. Run /groundtruth:setup in a repo.</p>'}
 <footer>groundtruth · trust tiers: ✓✓ verified + independently audited · ✓ verified (command passed) · ⏳ awaiting audit · ⚠ manual waiver (taken on trust) · ⊘ descoped (excluded from progress)</footer>
 </body></html>`;
 }
@@ -478,7 +478,7 @@ switch (cmd) {
   }
   case 'portfolio': {
     const reg = L.loadJson(L.registryPath());
-    if (!reg || !reg.projects.length) { console.log('[groundtruth] no tracked projects yet — run /groundtruth:init inside a repo.'); break; }
+    if (!reg || !reg.projects.length) { console.log('[groundtruth] no tracked projects yet — run /groundtruth:setup inside a repo.'); break; }
     console.log('Tracked projects:');
     const sorted = [...reg.projects].sort((a, b) => (L.daysSince(b.last_checkpoint) || 999) - (L.daysSince(a.last_checkpoint) || 999));
     for (const p of sorted) {
@@ -491,7 +491,7 @@ switch (cmd) {
   case 'report': {
     const projects = loadAllProjects();
     const live = projects.filter(p => !p.missing);
-    if (!live.length) die('no tracked projects with a readable map — run /groundtruth:init in a repo first.');
+    if (!live.length) die('no tracked projects with a readable map — run /groundtruth:setup in a repo first.');
     const stamp = opt('now') || now(); // skills pass --now so the timestamp is real
     const outHtml = opt('out') || path.join(cwd, 'groundtruth-report.html');
     fs.writeFileSync(outHtml, buildHtml(projects, stamp));

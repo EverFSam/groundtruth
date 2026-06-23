@@ -19,11 +19,11 @@ Quick in-session check: type `/groundtruth` in any Claude Code chat — the seve
 
 1. `git init` your project folder (recommended — evidence pins against commits).
 2. Open Claude Code **in that folder** (tracking is per-repo).
-3. Run `/groundtruth:init` and do the interview properly:
+3. Run `/groundtruth:setup` and do the interview properly:
    - Confirm/correct the proposed phases and tasks; weight phases by importance.
-   - **Reject weak verify specs** — a single-case test can be passed by a stub. Insist on the real test runner, multiple cases.
-   - **Accept `"audit": "required"`** for core/feature tasks (✓✓ tier: an independent reviewer must confirm the implementation is genuine). Skip for mechanical tasks.
-4. Commit `.groundtruth/map.json`. Gitignore `.groundtruth/.shadow.json` and `.groundtruth/.session-state.json` (init reminds you).
+   - **Size each verify spec to the work.** Logic → a scoped test (seconds, not a full suite); build work → a build/lint check; **visual/cosmetic/copy work → `method: "manual"`** (a legitimate choice, not a stigma). Never pin exact source text — it's a brittle change-detector.
+   - **Use `"audit": "required"`** only for core/feature/security logic (✓✓ tier: an independent reviewer confirms the implementation is genuine). Skip it for cosmetic, config, and mechanical tasks.
+4. Commit `.groundtruth/map.json`. Gitignore `.groundtruth/.shadow.json` and `.groundtruth/.session-state.json` (setup reminds you).
 
 ## 2. Day-to-day
 

@@ -1,11 +1,13 @@
 ---
-name: init
-description: Initialize groundtruth project tracking in the current repo — scan the codebase, interview the user to define phases and tasks (each with a mandatory verification command), and create .groundtruth/map.json. Use when the user wants to start tracking a project, set up groundtruth, or says "init the project map".
+name: setup
+description: Set up / initialize groundtruth project tracking in the current repo — scan the codebase, interview the user to define phases and tasks (each with a verification command), and create .groundtruth/map.json. Use when the user wants to start tracking a project, set up or initialize groundtruth, or says "init the project map".
 ---
 
-# groundtruth init
+# groundtruth setup
 
 The gt.js CLI lives at `<plugin root>/scripts/gt.js` — the `scripts/` directory two levels above this SKILL.md file. In shell commands you may also use the `CLAUDE_PLUGIN_ROOT` environment variable: `node "$env:CLAUDE_PLUGIN_ROOT/scripts/gt.js"` (PowerShell) or `node "$CLAUDE_PLUGIN_ROOT/scripts/gt.js"` (bash).
+
+(The user-facing command is `/groundtruth:setup` to avoid clashing with Claude Code's built-in `/init`. The gt.js CLI subcommand is still `init`.)
 
 ## Steps
 
@@ -30,5 +32,5 @@ The gt.js CLI lives at `<plugin root>/scripts/gt.js` — the `scripts/` director
 6. **Commit** the map (if the repo uses git) and show the user `node <gt.js> status`.
 
 ## Rules
-- Never mark any task `done` during init, even for work that looks finished — tell the user to run /groundtruth:checkpoint, which verifies it properly.
+- Never mark any task `done` during setup, even for work that looks finished — tell the user to run /groundtruth:checkpoint, which verifies it properly.
 - Do not invent tasks the user didn't agree to.

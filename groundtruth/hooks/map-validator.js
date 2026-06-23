@@ -25,7 +25,7 @@ if (!map) {
   process.exit(0);
 }
 
-// First sighting of a valid map (e.g. just created by /groundtruth:init): adopt it.
+// First sighting of a valid map (e.g. just created by /groundtruth:setup): adopt it.
 if (!shadow) { L.saveJson(sp, map); process.exit(0); }
 
 // Fast path: nothing changed.
