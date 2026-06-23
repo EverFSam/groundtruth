@@ -1,15 +1,17 @@
 ---
-name: status
-description: Show the verified progress report for the current project from its groundtruth map. Use when the user asks how far along the project is, for a status update, project progress, what's left, or where things stand.
+name: progress
+description: Show the verified progress report for the current project from its groundtruth map. Use when the user asks how far along the project is, for project progress or a status update, what's left, or where things stand.
 ---
 
-# groundtruth status
+# groundtruth progress
 
 Run from the repo root (gt.js lives at `<plugin root>/scripts/gt.js`, two levels above this SKILL.md; or use `$env:CLAUDE_PLUGIN_ROOT/scripts/gt.js`):
 
 ```
 node "<plugin root>/scripts/gt.js" status
 ```
+
+(The CLI subcommand is `status`; the user-facing command is `/groundtruth:progress` to avoid clashing with Claude Code's built-in `/status`.)
 
 ## Rules
 - Show the script output to the user **verbatim in a code block**. Do not recompute, round, or "correct" any number — the script is the source of truth, not your memory of the session.

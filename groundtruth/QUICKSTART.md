@@ -33,7 +33,7 @@ Quick in-session check: type `/groundtruth` in any Claude Code chat — the seve
 | Working | Nothing — operations are counted silently |
 | ⚠ "unrecorded work" warning appears | `/groundtruth:checkpoint` |
 | Finished a piece of work / ending the day | `/groundtruth:checkpoint` |
-| Want to see where things stand | `/groundtruth:status` |
+| Want to see where things stand | `/groundtruth:progress` |
 
 Checkpoint runs the verify commands, spawns the independent auditor where required, records signed evidence, and shows the updated map with trust tiers:
 `✓✓ verified + audited · ✓ verified · ⏳ awaiting audit · ⚠ manual waiver (taken on trust)`
